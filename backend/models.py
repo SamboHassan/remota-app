@@ -18,7 +18,7 @@ User model
 class UserModel(db.Model, UserMixin):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
-    username = db.Column(db.String(150)), unique=True, nullable=False)
+    username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(200), unique=True, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
@@ -33,8 +33,8 @@ class UserModel(db.Model, UserMixin):
     def format(self):
         return {
             "id": self.id,
-            "firstname": self.firstname,
-            "lastname": self.lastname,
+            "username": self.username,
+            "password": self.password,
             "email": self.email,
             "is_admin": self.is_admin,
         }

@@ -1,6 +1,5 @@
-from flask import Flask, jsonify, abort, redirect, request
+from flask import Flask, jsonify, abort, request
 
-from flask_cors import CORS
 from werkzeug.http import HTTP_STATUS_CODES
 from flask_jwt_extended import jwt_required
 from passlib.hash import pbkdf2_sha256
@@ -16,45 +15,26 @@ def create_app():
     db.init_app(app)
     db.app = app
 
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
-
-    @app.after_request
-    def after_request(response):
-        """This set up cors and allow '*' for origins"""
-
-        response.headers.add(
-            "Access-Control-Allow-Headers", "Content-Type,Authorization,true"
-        )
-        response.headers.add(
-            "Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS"
-        )
-        return response
-
-    @app.errorhandler(500)
-    def unprocessable_error(error):
-        return (
-            jsonify(
-                {"success": False, "error": 500, "message": "Internal Server error"}
-            ),
-            500,
-        )
-
-    # --------- Errors
-
-    def error_response(status_code, message=None):
-        payword = {"error": HTTP_STATUS_CODES.get(status_code, "unknown error")}
-        if message:
-            payword["message"] = message
-        return payword, status_code
-
-    def bad_request(message):
-        return error_response(400, message)
-
     # -------- Endpoints ---------#
 
     @app.route("/")
     def home():
         return jsonify({"success": True, "message": "Hello world placeholder"})
+
+    @app.route("/users", methods=["POST"])
+    def register():
+        user_data = request.get_json()
+        if UserModel.query.filter(UserModel.username == user_data["username"]).first():
+            abort(409)
+
+        user = UserModel(
+            username=user_data["username"],
+            password=pbkdf2_sha256.hash(user_data["password"]),
+            email=user_data["email"],
+        )
+        db.session.add(user)
+        db.session.commit()
+        return jsonify({"id": user.id, "password": user.password})
 
     with app.app_context():
         db.create_all()
