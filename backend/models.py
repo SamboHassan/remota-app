@@ -17,13 +17,10 @@ User model
 
 class UserModel(db.Model, UserMixin):
     __tablename__ = "users"
-
-    id = db.Column(db.Integer, primary_key=True)
-    firstname = db.Column(db.String(80), unique=True, nullable=False)
-    lastname = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128))
-    image_file = db.Column(db.String(20), nullable=False, default="default.jpg")
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
+    username = db.Column(db.String(150)), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
+    email = db.Column(db.String(200), unique=True, nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
     is_admin = db.Column(db.Boolean, default=False)
 

@@ -1,5 +1,10 @@
-from flask import Flask, jsonify, abort
+from flask import Flask, jsonify, abort, redirect, request
+
 from flask_cors import CORS
+from werkzeug.http import HTTP_STATUS_CODES
+from flask_jwt_extended import jwt_required
+from passlib.hash import pbkdf2_sha256
+
 
 from models import db, UserModel, JobModel
 
@@ -25,10 +30,6 @@ def create_app():
         )
         return response
 
-    @app.route("/")
-    def home():
-        return jsonify({"success": True, "message": "Hello world placeholder"})
-
     @app.errorhandler(500)
     def unprocessable_error(error):
         return (
@@ -37,6 +38,23 @@ def create_app():
             ),
             500,
         )
+
+    # --------- Errors
+
+    def error_response(status_code, message=None):
+        payword = {"error": HTTP_STATUS_CODES.get(status_code, "unknown error")}
+        if message:
+            payword["message"] = message
+        return payword, status_code
+
+    def bad_request(message):
+        return error_response(400, message)
+
+    # -------- Endpoints ---------#
+
+    @app.route("/")
+    def home():
+        return jsonify({"success": True, "message": "Hello world placeholder"})
 
     with app.app_context():
         db.create_all()
