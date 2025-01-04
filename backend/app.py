@@ -4,7 +4,12 @@
 
 from flask import Flask, jsonify, abort, request, url_for, flash, redirect
 from werkzeug.http import HTTP_STATUS_CODES
-from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token
+from flask_jwt_extended import (
+    jwt_required,
+    create_access_token,
+    create_refresh_token,
+    JWTManager,
+)
 from passlib.hash import pbkdf2_sha256
 from models import db, UserModel, JobModel
 
@@ -13,6 +18,10 @@ def create_app():
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///portal.db"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.secret_key = "super secret key"
+    app.config["JWT_SECRET_KEY"] = "jose"
+    jwt = JWTManager(app)
+
     db.init_app(app)
     db.app = app
 
@@ -50,9 +59,6 @@ def create_app():
             print(f'Exception "{e}"')
             db.session.rollback()
 
-        finally:
-            db.session.close()
-
         if not insert_error:
             flash("You are successfully registred!")
             return user.format()
@@ -61,6 +67,19 @@ def create_app():
             flash("could not be listed.")
             abort(500)
             return redirect(url_for("index"))
+
+    @app.route("/login")
+    def login(user_data):
+        user_data = request.get_json()
+        # clinet will send  json payload
+        # with email and password combination
+        # in order to login
+        user = UserModel.query.filter(UserModel.email == user_data["email"]).first()
+
+        if user and pbkdf2_sha256.verify(user_data["password"], user.password):
+            access_token = create_access_token(identity=str(user.id), fresh=True)
+            refresh_token = create_refresh_token(str(user.id))
+            return {"access_token": access_token, "refresh_token": refresh_token}, 200
 
     with app.app_context():
         db.create_all()
