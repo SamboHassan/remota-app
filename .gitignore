@@ -1,3 +1,5 @@
 .venv
 .venv/
 backend/.venv
+remota-app/node_modules/
+node_modules/
