@@ -1,5 +1,7 @@
-from flask_smorest import Blueprint, abort
 from flask import request
+from flask_login import login_user
+from flask_smorest import Blueprint, abort
+
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
@@ -70,6 +72,7 @@ def register(user_data):
 def login(user_data):
     user = UserModel.query.filter(UserModel.email == user_data["email"]).first()
     if user and pbkdf2_sha256.verify(user_data["password"], user.password):
+        login_user(user)  # Log the user in
         access_token = create_access_token(identity=str(user.id), fresh=True)
         refresh_token = create_refresh_token(str(user.id))
 
