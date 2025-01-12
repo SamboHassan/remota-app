@@ -1,11 +1,9 @@
 from flask import request, jsonify
-from flask_login import current_user, login_required, LoginManager
+from flask_login import current_user, login_required, login_manager
 from marshmallow import ValidationError
 
 from flask_smorest import Blueprint, abort
 from flask_jwt_extended import (
-    create_access_token,
-    create_refresh_token,
     get_jwt_identity,
     get_jwt,
     jwt_required,
@@ -14,7 +12,7 @@ from flask_jwt_extended import (
 from sqlalchemy.exc import SQLAlchemyError
 
 from db import db
-from app import login_manager
+
 from models import JobModel, UserModel
 from schemas import JobSchema, JobPlainSchema
 
@@ -22,22 +20,20 @@ blp = Blueprint("Jobs", "jobs", description="Operations on jobs")
 
 
 # product_bp = Blueprint("product", __name__, url_prefix="/products")
-@login_manager.user_loader
-def load_user(user_id):
-    return UserModel.query.get(int(user_id))
-
-
 @blp.route("/jobs", methods=["POST"])
 @blp.arguments(JobSchema)  # Validate request payload with schema
-@blp.response(201, JobSchema)  # Validate response with schema
-@login_required
-@jwt_required()
+# @blp.response(201, JobSchema)  # Validate response with schema
+@login_required  # Ensures the user is logged in via Flask-Login
+@jwt_required()  # Ensures a valid JWT token is provided
 def create_job(job_data):
-    current_user_id = get_jwt_identity()
-    print(current_user_id)
     try:
+        current_user_id = get_jwt_identity()
+        print(current_user_id)
         # Check if the user is authenticated and an admin
-        if not current_user.is_authenticated or not current_user.is_admin:
+        # if not current_user.is_authenticated or not current_user.is_admin:
+        #     return jsonify({"message": "Unauthorized"}), 403
+
+        if not current_user.is_admin:
             return jsonify({"message": "Unauthorized"}), 403
 
         # Extract required fields
@@ -60,7 +56,7 @@ def create_job(job_data):
         db.session.add(new_job)
         db.session.commit()
 
-        return new_job, 201
+        return {"message": "New job added successfully."}, 201
 
     except ValidationError as ve:
         db.session.rollback()  # Rollback transaction on failure

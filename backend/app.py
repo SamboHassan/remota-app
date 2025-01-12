@@ -1,16 +1,16 @@
 from flask import Flask, jsonify
 from flask_smorest import Api
 from flask_jwt_extended import JWTManager
+from flask_login import LoginManager
 
+from models import UserModel  # Import your UserModel
 from db import db
 
 from resources.user import blp as UserBlueprint
-
-# from resources.job import blp as JobBlueprint
+from resources.job import blp as JobBlueprint
 
 # from werkzeug.http import HTTP_STATUS_CODES
 from passlib.hash import pbkdf2_sha256
-from db import db
 from blocklist import BLOCKLIST
 
 
@@ -24,16 +24,31 @@ def create_app(db_url=None):
     app.config["OPENAPI_SWAGGER_UI_URL"] = (
         "https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
     )
-    app.config["SQLALCHEMY_DATABASE_URI"] = db_url or "sqlite:///data.db"
+    app.config["SQLALCHEMY_DATABASE_URI"] = db_url or "sqlite:///jobapp.db"
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["PROPAGATE_EXCEPTIONS"] = True
     app.config["JWT_ERROR_MESSAGE_KEY"] = "message"
+    app.config["JWT_SECRET_KEY"] = "jose"
+
+    # Initialize extensions
     db.init_app(app)
     api = Api(app)
-
-    app.config["JWT_SECRET_KEY"] = "jose"
     jwt = JWTManager(app)
 
+    # Configure Flask-Login
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    login_manager.login_view = "UserBlueprint.login"  # Route name for login
+    # login_manager.login_view = (
+    #     "UserBlueprint.login"  # Redirect to login if not authenticated
+    # )
+
+    # Define the user_loader function
+    @login_manager.user_loader
+    def load_user(user_id):
+        return UserModel.query.get(int(user_id))  # Load user by ID
+
+    # JWT token blocklist loader
     @jwt.token_in_blocklist_loader
     def check_if_token_in_blocklist(jwt_header, jwt_payload):
         return jwt_payload["jti"] in BLOCKLIST
@@ -93,5 +108,6 @@ def create_app(db_url=None):
         db.create_all()
 
     api.register_blueprint(UserBlueprint)
+    api.register_blueprint(JobBlueprint)
 
     return app

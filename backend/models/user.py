@@ -2,10 +2,11 @@ from db import db
 from datetime import datetime
 import json
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
 from sqlalchemy.sql import func
 
 
-class UserModel(db.Model):
+class UserModel(db.Model, UserMixin):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, nullable=False)
     username = db.Column(db.String(150), unique=True, nullable=False)
