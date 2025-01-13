@@ -13,13 +13,14 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from db import db
 
-from models import JobModel, UserModel
+from models import JobModel, UserModel, ApplicationModel
 from schemas import JobSchema, JobPlainSchema
 
 blp = Blueprint("Jobs", "jobs", description="Operations on jobs")
 
+# --------------------- 1. Create or Post a Job
 
-# product_bp = Blueprint("product", __name__, url_prefix="/products")
+
 @blp.route("/jobs", methods=["POST"])
 @blp.arguments(JobSchema)  # Validate request payload with schema
 # @blp.response(201, JobSchema)  # Validate response with schema
@@ -65,3 +66,50 @@ def create_job(job_data):
     except Exception as e:
         db.session.rollback()
         return {"message": f"An unexpected error occurred: {str(e)}"}, 500
+
+
+# --------------------- 2. Get all Jobs
+
+
+@blp.route("/jobs", methods=["GET"])
+@blp.response(201, JobSchema)  # Validate response with schema
+def get_jobs():
+    try:
+        jobs = JobModel.query.all()
+        jobs_list = [
+            {
+                "id": job.id,
+                "title": job.title,
+                "description": job.description,
+                "posted_at": job.posted_at,
+                "posted_by": job.posted_by,
+            }
+            for job in jobs
+        ]
+        return jsonify(jobs_list), 200
+    except ValidationError as ve:
+        return {"message": ve.messages}, 400
+
+    except Exception as e:
+        return {"message": f"An unexpected error occurred: {str(e)}"}, 500
+
+
+# --------------------- 3. Apply for a Job
+
+
+@blp.route("/jobs/<int:job_id>/apply", methods=["POST"])
+def apply_for_job(job_id):
+    if not current_user.is_authenticated:
+        return jsonify({"message": "Unauthorized"}), 403
+
+    job = JobModel.query.get_or_404(job_id)
+    # Check if user has already applied
+    existing_application = ApplicationModel.query.filter_by(
+        job_id=job.id, applicant_id=current_user.id
+    ).first()
+    if existing_application:
+        return jsonify({"message": "You have already applied for this job."}), 400
+
+    application = ApplicationModel(job_id=job.id, applicant_id=current_user.id)
+    db.session.add(application)
+    db.session.commit()
