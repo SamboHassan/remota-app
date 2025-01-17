@@ -1,9 +1,11 @@
 from db import db
 from datetime import datetime
 import json
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from sqlalchemy.sql import func
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.sql import func
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 class UserModel(db.Model, UserMixin):
@@ -12,8 +14,15 @@ class UserModel(db.Model, UserMixin):
     username = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
     email = db.Column(db.String(200), unique=True, nullable=False)
-    created_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    created_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
     is_admin = db.Column(db.Boolean, default=False)  # Admin flag
+    jobs_posted = db.relationship("JobModel", backref="poster", lazy="dynamic")
+
+    def set_password(self, raw_password):
+        self.password = generate_password_hash(raw_password)
+
+    def check_password(self, raw_password):
+        return check_password_hash(self.password, raw_password)
 
     def __repr__(self):
         return f"<User: {self.username}>"

@@ -1,24 +1,38 @@
+from db import db
 from datetime import datetime
 import json
-
-from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from sqlalchemy.sql import func
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.sql import func
+from werkzeug.security import generate_password_hash, check_password_hash
 
-from db import db
 
-
-class JobModel(db.Model):
+class JobModel(db.Model, UserMixin):
     __tablename__ = "jobs"
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
+    company = db.Column(db.String(150), nullable=True)
     description = db.Column(db.Text, nullable=False)
     location = db.Column(db.String(120), nullable=False, default="Remote")
-    posted_at = db.Column(db.DateTime, nullable=False, server_default=func.now())
+    posted_at = db.Column(db.DateTime, nullable=False, server_default=db.func.now())
     posted_by = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    # posted_at = db.Column(db.DateTime, default=db.func.current_timestamp())
-    admin = db.relationship("UserModel", backref=db.backref("jobs_posted", lazy=True))
 
     def format(self):
         return {"id": self.id, "title": self.title, "description": self.description}
+
+
+# Application Model
+class ApplicationModel(db.Model, UserMixin):
+    __tablename__ = "applications"
+    id = db.Column(db.Integer, primary_key=True)
+    applicant_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    job_id = db.Column(db.Integer, db.ForeignKey("jobs.id"), nullable=False)
+    applied_at = db.Column(db.DateTime, server_default=db.func.now())
+    status = db.Column(
+        db.String(50), default="Pending"
+    )  # Application status: Pending, Accepted, Rejected
+
+    def __repr__(self):
+        return f"<ApplicantId: {self.applicant_id}, JobId: {self.job_id}"
