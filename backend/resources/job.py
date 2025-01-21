@@ -14,7 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from db import db
 
 from models import JobModel, UserModel, ApplicationModel
-from schemas import JobSchema, JobPlainSchema
+from schemas import JobSchema, JobPlainSchema, ApplyJobSchema
 
 blp = Blueprint("Jobs", "jobs", description="Operations on jobs")
 
@@ -95,21 +95,171 @@ def get_jobs():
 
 
 # --------------------- 3. Apply for a Job
-
-
 @blp.route("/jobs/<int:job_id>/apply", methods=["POST"])
-def apply_for_job(job_id):
-    if not current_user.is_authenticated:
-        return jsonify({"message": "Unauthorized"}), 403
+@blp.arguments(ApplyJobSchema)  # Validates request body
+@login_required  # Ensures the user is logged in
+@jwt_required()  # Ensures a valid JWT token is provided
+def apply_for_job(user_data, job_id):
+    print(f"Received user data: {user_data}")  # Debug log
 
-    job = JobModel.query.get_or_404(job_id)
-    # Check if user has already applied
-    existing_application = ApplicationModel.query.filter_by(
-        job_id=job.id, applicant_id=current_user.id
-    ).first()
-    if existing_application:
-        return jsonify({"message": "You have already applied for this job."}), 400
+    try:
+        # 'data' comes from @blp.arguments,
+        # 'job_id' comes from URL
+        # Check user authentication
+        if not current_user.is_authenticated:
+            return jsonify({"message": "Unauthorized"}), 403
 
-    application = ApplicationModel(job_id=job.id, applicant_id=current_user.id)
-    db.session.add(application)
-    db.session.commit()
+        # Check if job exists
+        job = JobModel.query.get_or_404(job_id)
+
+        # Check if the user has already applied for the job
+        existing_application = ApplicationModel.query.filter_by(
+            job_id=job.id, applicant_id=current_user.id
+        ).first()
+        if existing_application:
+            return jsonify({"message": "You have already applied for this job."}), 400
+
+        # Process application
+        application = ApplicationModel(
+            job_id=job.id,
+            applicant_id=current_user.id,
+            resume_url=user_data.get("resume_url"),
+            cover_letter=user_data.get("cover_letter"),
+        )
+        db.session.add(application)
+        db.session.commit()
+
+        return (
+            jsonify({"message": f"Application for job '{job.title}' submitted!"}),
+            201,
+        )
+    except:
+        return {"message": "Error message"}
+
+
+# STILL HAVING ISSUESSSSSS:
+
+# @blp.route("/jobs/<int:job_id>/apply", methods=["POST"])
+# @blp.arguments(ApplyJobSchema)  # Validates request body
+# @login_required  # Ensures the user is logged in
+# @jwt_required()  # Ensures a valid JWT token is provided
+# def apply_for_job(data, job_id):
+#     # 'data' comes from @blp.arguments, 'job_id' from URL
+#     # Check user authentication
+#     if not current_user.is_authenticated:
+#         return jsonify({"message": "Unauthorized"}), 403
+
+#     # Check if job exists
+#     job = JobModel.query.get_or_404(job_id)
+
+#     # Check if the user has already applied for the job
+#     existing_application = ApplicationModel.query.filter_by(
+#         job_id=job.id, applicant_id=current_user.id
+#     ).first()
+#     if existing_application:
+#         return jsonify({"message": "You have already applied for this job."}), 400
+
+#     # Process application
+#     application = ApplicationModel(
+#         job_id=job.id,
+#         applicant_id=current_user.id,
+#         resume_url=data.get("resume_url"),
+#         cover_letter=data.get("cover_letter"),
+#     )
+#     db.session.add(application)
+#     db.session.commit()
+
+#     return jsonify({"message": f"Application for job '{job.title}' submitted!"}), 201
+
+
+# OLD Approach:
+# @blp.route("/jobs/<int:job_id>/apply", methods=["POST"])
+# @blp.arguments(ApplyJobSchema)  # Validate request payload with schema
+# @login_required  # Ensures the user is logged in via Flask-Login
+# @jwt_required()  # Ensures a valid JWT token is provided
+# def apply_for_job(job_id):
+#     if not current_user.is_authenticated:
+#         return jsonify({"message": "Unauthorized"}), 403
+
+#     job = JobModel.query.get_or_404(job_id)
+#     # Check if user has already applied
+#     existing_application = ApplicationModel.query.filter_by(
+#         job_id=job.id, applicant_id=current_user.id
+#     ).first()
+#     if existing_application:
+#         return jsonify({"message": "You have already applied for this job."}), 400
+
+#     application = ApplicationModel(job_id=job.id, applicant_id=current_user.id)
+#     db.session.add(application)
+#     db.session.commit()
+
+#     return jsonify({"message": f"Application for job '{job.title}' submitted!"}), 201
+
+
+# ------- 6. Updating Job Details (Admin Only)
+# @app.route("/jobs/<int:job_id>", methods=["PUT"])
+# def update_job(job_id):
+#     if not current_user.is_authenticated or not current_user.is_admin:
+#         return jsonify({"message": "Unauthorized"}), 403
+
+#     job = Job.query.get_or_404(job_id)
+#     data = request.json
+
+#     job.title = data.get("title", job.title)
+#     job.description = data.get("description", job.description)
+#     db.session.commit()
+
+#     return jsonify({"message": f"Job '{job.title}' updated successfully!"}), 200
+
+
+# 8. Deleting a Job (Admin Only)
+# @app.route("/jobs/<int:job_id>", methods=["DELETE"])
+# def delete_job(job_id):
+#     if not current_user.is_authenticated or not current_user.is_admin:
+#         return jsonify({"message": "Unauthorized"}), 403
+
+#     job = Job.query.get_or_404(job_id)
+#     db.session.delete(job)
+#     db.session.commit()
+
+#     return jsonify({"message": f"Job '{job.title}' deleted successfully!"}), 200
+
+
+# ------------------------ 9. Querying Applications for a Specific Job (Admin Only)
+# @app.route("/jobs/<int:job_id>/applications", methods=["GET"])
+# def get_job_applications(job_id):
+#     if not current_user.is_authenticated or not current_user.is_admin:
+#         return jsonify({"message": "Unauthorized"}), 403
+
+#     job = Job.query.get_or_404(job_id)
+#     applications = JobApplication.query.filter_by(job_id=job.id).all()
+#     applications_list = [
+#         {
+#             "id": application.id,
+#             "applicant_id": application.applicant_id,
+#             "applicant_username": application.applicant.username,
+#             "status": application.status,
+#             "application_date": application.application_date,
+#         }
+#         for application in applications
+#     ]
+#     return jsonify(applications_list), 200
+
+
+# ---------------- 7. Querying Jobs (Search by Keyword)
+# @app.route("/jobs/search", methods=["GET"])
+# def search_jobs():
+#     keyword = request.args.get("keyword", "")
+#     jobs = Job.query.filter(
+#         Job.title.contains(keyword) | Job.description.contains(keyword)
+#     ).all()
+#     jobs_list = [
+#         {
+#             "id": job.id,
+#             "title": job.title,
+#             "description": job.description,
+#             "date_posted": job.date_posted,
+#         }
+#         for job in jobs
+#     ]
+#     return jsonify(jobs_list), 200

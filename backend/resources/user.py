@@ -30,41 +30,36 @@ blp = Blueprint("Users", "users", description="Operations on users")
 # -------- Endpoints ---------#
 
 
-# @blp.route("/users")
-# @blp.arguments(UserSchema)  # Validate request payload with schema
-# def index():
-#     try:
-#         users = UserModel.query.all()
-#         return jsonify({"users": users})
-#     except Exception as e:
-#         print(f'Exception "{e}"')
-#         flash("An Error had occurred, users could not be fetched")
-
-
 @blp.route("/users", methods=["POST"])
-@blp.arguments(UserSchema)  # Validate request payload with schema
-@blp.response(201, UserSchema)  # Validate response with schema
+@blp.arguments(UserSchema())  # Validate request payload with schema
+@blp.response(201, UserSchema())  # Validate response with schema
 def register(user_data):
+    print(user_data)
     try:
-        # if UserModel.query.filter(UserModel.username == user_data["username"]).first():
-        #     abort(409, message="A user with that username already exists.")
+        if UserModel.query.filter(UserModel.username == user_data["username"]).first():
+            abort(409, message="A user with that username already exists.")
+        # user = UserModel(
+        #     username=user_data["username"],
+        #     password=pbkdf2_sha256.hash(user_data["password"]),
+        #     email=user_data["email"],
+        #     is_admin=user_data["is_admin"],
+        # )
+
         user = UserModel(
             username=user_data["username"],
-            password=pbkdf2_sha256.hash(user_data["password"]),
+            # password=UserModel.set_password(user_data["password"]),
+            password=user_data["password"],
             email=user_data["email"],
             is_admin=user_data["is_admin"],
         )
+        user.set_password(user_data["password"])
         db.session.add(user)
         db.session.commit()
         return user
 
     except IntegrityError as e:
-        db.session.rollback()  # Rollback transaction on failure
+        # db.session.rollback()  # Rollback transaction on failure
         return {"message": "Username or email already exists."}, 400
-
-    except Exception as e:
-        db.session.rollback()  # Rollback transaction on other errors
-        return {"message": "An unexpected error occurred."}, 500
 
 
 @blp.route("/login", methods=["POST"])
