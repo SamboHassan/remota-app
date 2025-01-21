@@ -18,11 +18,11 @@ class UserModel(db.Model, UserMixin):
     is_admin = db.Column(db.Boolean, default=False)  # Admin flag
     jobs_posted = db.relationship("JobModel", backref="poster", lazy="dynamic")
 
-    def set_password(self, raw_password):
-        self.password = generate_password_hash(raw_password)
+    def set_password(self, password):
+        self.password = generate_password_hash(password)
 
-    def check_password(self, raw_password):
-        return check_password_hash(self.password, raw_password)
+    def check_password(self, password):
+        return check_password_hash(self.password, password)
 
     def __repr__(self):
         return f"<User: {self.username}>"
