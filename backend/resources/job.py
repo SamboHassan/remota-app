@@ -14,7 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from db import db
 
 from models import JobModel, UserModel, ApplicationModel
-from schemas import JobSchema, JobPlainSchema, ApplyJobSchema
+from schemas import JobSchema, UpdateJobSchema, ApplyJobSchema
 
 blp = Blueprint("Jobs", "jobs", description="Operations on jobs")
 
@@ -28,17 +28,18 @@ blp = Blueprint("Jobs", "jobs", description="Operations on jobs")
 @jwt_required()  # Ensures a valid JWT token is provided
 def create_job(job_data):
     try:
-        current_user_id = get_jwt_identity()
-        print(current_user_id)
+        # current_user_id = get_jwt_identity()
+        # print(current_user_id)
         # Check if the user is authenticated and an admin
         # if not current_user.is_authenticated or not current_user.is_admin:
         #     return jsonify({"message": "Unauthorized"}), 403
 
-        if not current_user.is_admin:
+        if not current_user.is_authenticated and not current_user.is_admin:
             return jsonify({"message": "Unauthorized"}), 403
 
         # Extract required fields
         title = job_data.get("title")
+        company = job_data.get("company")
         description = job_data.get("description")
         location = job_data.get("location", "Remote")  # Default to "Remote"
 
@@ -48,6 +49,7 @@ def create_job(job_data):
         # Create a new job instance
         new_job = JobModel(
             title=title,
+            company=company,
             description=description,
             location=location,
             posted_by=current_user.id,
@@ -80,6 +82,7 @@ def get_jobs():
             {
                 "id": job.id,
                 "title": job.title,
+                "company": job.company,
                 "description": job.description,
                 "posted_at": job.posted_at,
                 "posted_by": job.posted_by,
@@ -95,6 +98,8 @@ def get_jobs():
 
 
 # --------------------- 3. Apply for a Job
+
+
 @blp.route("/jobs/<int:job_id>/apply", methods=["POST"])
 @blp.arguments(ApplyJobSchema)  # Validates request body
 @login_required  # Ensures the user is logged in
@@ -133,83 +138,42 @@ def apply_for_job(user_data, job_id):
             jsonify({"message": f"Application for job '{job.title}' submitted!"}),
             201,
         )
-    except:
-        return {"message": "Error message"}
-
-
-# STILL HAVING ISSUESSSSSS:
-
-# @blp.route("/jobs/<int:job_id>/apply", methods=["POST"])
-# @blp.arguments(ApplyJobSchema)  # Validates request body
-# @login_required  # Ensures the user is logged in
-# @jwt_required()  # Ensures a valid JWT token is provided
-# def apply_for_job(data, job_id):
-#     # 'data' comes from @blp.arguments, 'job_id' from URL
-#     # Check user authentication
-#     if not current_user.is_authenticated:
-#         return jsonify({"message": "Unauthorized"}), 403
-
-#     # Check if job exists
-#     job = JobModel.query.get_or_404(job_id)
-
-#     # Check if the user has already applied for the job
-#     existing_application = ApplicationModel.query.filter_by(
-#         job_id=job.id, applicant_id=current_user.id
-#     ).first()
-#     if existing_application:
-#         return jsonify({"message": "You have already applied for this job."}), 400
-
-#     # Process application
-#     application = ApplicationModel(
-#         job_id=job.id,
-#         applicant_id=current_user.id,
-#         resume_url=data.get("resume_url"),
-#         cover_letter=data.get("cover_letter"),
-#     )
-#     db.session.add(application)
-#     db.session.commit()
-
-#     return jsonify({"message": f"Application for job '{job.title}' submitted!"}), 201
-
-
-# OLD Approach:
-# @blp.route("/jobs/<int:job_id>/apply", methods=["POST"])
-# @blp.arguments(ApplyJobSchema)  # Validate request payload with schema
-# @login_required  # Ensures the user is logged in via Flask-Login
-# @jwt_required()  # Ensures a valid JWT token is provided
-# def apply_for_job(job_id):
-#     if not current_user.is_authenticated:
-#         return jsonify({"message": "Unauthorized"}), 403
-
-#     job = JobModel.query.get_or_404(job_id)
-#     # Check if user has already applied
-#     existing_application = ApplicationModel.query.filter_by(
-#         job_id=job.id, applicant_id=current_user.id
-#     ).first()
-#     if existing_application:
-#         return jsonify({"message": "You have already applied for this job."}), 400
-
-#     application = ApplicationModel(job_id=job.id, applicant_id=current_user.id)
-#     db.session.add(application)
-#     db.session.commit()
-
-#     return jsonify({"message": f"Application for job '{job.title}' submitted!"}), 201
+    except Exception as e:
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 
 # ------- 6. Updating Job Details (Admin Only)
-# @app.route("/jobs/<int:job_id>", methods=["PUT"])
-# def update_job(job_id):
-#     if not current_user.is_authenticated or not current_user.is_admin:
-#         return jsonify({"message": "Unauthorized"}), 403
 
-#     job = Job.query.get_or_404(job_id)
-#     data = request.json
 
-#     job.title = data.get("title", job.title)
-#     job.description = data.get("description", job.description)
-#     db.session.commit()
+@blp.route("/jobs/<int:job_id>", methods=["PUT"])
+@blp.arguments(UpdateJobSchema)  # Validates request body
+@login_required  # Ensures the user is logged in
+@jwt_required()  # Ensures a valid JWT token is provided
+def update_job(job_data, job_id):
+    try:
+        if not current_user.is_authenticated or not current_user.is_admin:
+            return jsonify({"message": "Unauthorized"}), 403
 
-#     return jsonify({"message": f"Job '{job.title}' updated successfully!"}), 200
+        job = JobModel.query.get_or_404(job_id)
+
+        # data.get("title", job.title)
+        # job.description = data.get("description", job.description)
+        # {
+        #     "company": "Schoen Inc",
+        #     "description": "Direct",
+        #     "id": 1,
+        #     "posted_at": "Wed, 22 Jan 2025 14:30:08 GMT",
+        #     "posted_by": 1,
+        #     "title": "Human Division Designer",
+        # }
+
+        job.title = job_data["title"]
+        job.description = job_data["description"]
+        db.session.commit()
+
+        return jsonify({"message": f"Job '{job.title}' updated successfully!"}), 200
+    except Exception as e:
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 
 # 8. Deleting a Job (Admin Only)
