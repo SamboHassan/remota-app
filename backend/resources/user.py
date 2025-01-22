@@ -1,5 +1,5 @@
 from flask import request
-from flask_login import login_user
+from flask_login import login_user, current_user, logout_user
 from flask_smorest import Blueprint, abort
 
 from flask_jwt_extended import (
@@ -65,9 +65,15 @@ def register(user_data):
 @blp.route("/login", methods=["POST"])
 @blp.arguments(LoginSchema)  # Use LoginSchema for validation
 def login(user_data):
+    # Check if user is already authenticated
+    # if current_user.is_authenticated:
+    #     return jsonify({"message": "User already logged in."}), 200
+
     user = UserModel.query.filter(UserModel.email == user_data["email"]).first()
-    if user and pbkdf2_sha256.verify(user_data["password"], user.password):
-        login_user(user)  # Log the user in
+    # if user and pbkdf2_sha256.verify(user_data["password"], user.password):
+    #     login_user(user)  # Log the user in
+    if user and user.check_password(user_data["password"]):
+        login_user(user)
         access_token = create_access_token(identity=str(user.id), fresh=True)
         refresh_token = create_refresh_token(str(user.id))
 
@@ -76,16 +82,18 @@ def login(user_data):
                 {
                     "access_token": access_token,
                     "refresh_token": refresh_token,
+                    "message": "Login successful.",
                 }
             ),
             200,
         )
-    abort(401, message="Invalid credentials.")
+    abort(401, message="Invalid email or password.")
 
 
 @blp.route("/logout", methods=["POST"])
 @jwt_required()
 def logout():
+    logout_user()
     print(request.headers)  # Debugging: Log headers
     jti = get_jwt()["jti"]
     BLOCKLIST.add(jti)
