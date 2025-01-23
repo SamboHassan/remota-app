@@ -155,18 +155,6 @@ def update_job(job_data, job_id):
             return jsonify({"message": "Unauthorized"}), 403
 
         job = JobModel.query.get_or_404(job_id)
-
-        # data.get("title", job.title)
-        # job.description = data.get("description", job.description)
-        # {
-        #     "company": "Schoen Inc",
-        #     "description": "Direct",
-        #     "id": 1,
-        #     "posted_at": "Wed, 22 Jan 2025 14:30:08 GMT",
-        #     "posted_by": 1,
-        #     "title": "Human Division Designer",
-        # }
-
         job.title = job_data["title"]
         job.description = job_data["description"]
         db.session.commit()
@@ -176,17 +164,22 @@ def update_job(job_data, job_id):
         return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 
-# 8. Deleting a Job (Admin Only)
-# @app.route("/jobs/<int:job_id>", methods=["DELETE"])
-# def delete_job(job_id):
-#     if not current_user.is_authenticated or not current_user.is_admin:
-#         return jsonify({"message": "Unauthorized"}), 403
+@blp.route("/jobs/<int:job_id>", methods=["DELETE"])
+# @blp.arguments(UpdateJobSchema)  # Validates request body
+@login_required  # Ensures the user is logged in
+@jwt_required()  # Ensures a valid JWT token is provide
+def delete_job(job_id):
+    try:
+        if not current_user.is_authenticated or not current_user.is_admin:
+            return jsonify({"message": "Unauthorized"}), 403
 
-#     job = Job.query.get_or_404(job_id)
-#     db.session.delete(job)
-#     db.session.commit()
+        job = JobModel.query.get_or_404(job_id)
+        db.session.delete(job)
+        db.session.commit()
 
-#     return jsonify({"message": f"Job '{job.title}' deleted successfully!"}), 200
+        return jsonify({"message": f"Job '{job.title}' deleted successfully!"}), 200
+    except Exception as e:
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 
 # ------------------------ 9. Querying Applications for a Specific Job (Admin Only)
