@@ -14,7 +14,13 @@ from sqlalchemy.exc import SQLAlchemyError
 from db import db
 
 from models import JobModel, UserModel, ApplicationModel
-from schemas import JobSchema, UpdateJobSchema, ApplyJobSchema
+from schemas import (
+    JobSchema,
+    UpdateJobSchema,
+    ApplyJobSchema,
+    ApplicationSchema,
+    JobSearchSchema,
+)
 
 blp = Blueprint("Jobs", "jobs", description="Operations on jobs")
 
@@ -28,12 +34,6 @@ blp = Blueprint("Jobs", "jobs", description="Operations on jobs")
 @jwt_required()  # Ensures a valid JWT token is provided
 def create_job(job_data):
     try:
-        # current_user_id = get_jwt_identity()
-        # print(current_user_id)
-        # Check if the user is authenticated and an admin
-        # if not current_user.is_authenticated or not current_user.is_admin:
-        #     return jsonify({"message": "Unauthorized"}), 403
-
         if not current_user.is_authenticated and not current_user.is_admin:
             return jsonify({"message": "Unauthorized"}), 403
 
@@ -165,7 +165,6 @@ def update_job(job_data, job_id):
 
 
 @blp.route("/jobs/<int:job_id>", methods=["DELETE"])
-# @blp.arguments(UpdateJobSchema)  # Validates request body
 @login_required  # Ensures the user is logged in
 @jwt_required()  # Ensures a valid JWT token is provide
 def delete_job(job_id):
@@ -182,41 +181,62 @@ def delete_job(job_id):
         return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 
-# ------------------------ 9. Querying Applications for a Specific Job (Admin Only)
-# @app.route("/jobs/<int:job_id>/applications", methods=["GET"])
-# def get_job_applications(job_id):
-#     if not current_user.is_authenticated or not current_user.is_admin:
-#         return jsonify({"message": "Unauthorized"}), 403
+# ------- 9. Querying Applications for a Specific Job (Admin Only)
 
-#     job = Job.query.get_or_404(job_id)
-#     applications = JobApplication.query.filter_by(job_id=job.id).all()
-#     applications_list = [
-#         {
-#             "id": application.id,
-#             "applicant_id": application.applicant_id,
-#             "applicant_username": application.applicant.username,
-#             "status": application.status,
-#             "application_date": application.application_date,
-#         }
-#         for application in applications
-#     ]
-#     return jsonify(applications_list), 200
+
+@blp.route("/jobs/<int:job_id>/applications", methods=["GET"])
+# @blp.arguments(ApplicationRequestSchema)  # No req body to Validates
+@blp.response(200, ApplicationSchema(many=True))  # Validate response with schema
+@login_required  # Ensures the user is logged in
+@jwt_required()  # Ensures a valid JWT token is provided
+def get_job_applications(job_id):
+    try:
+
+        if not current_user.is_authenticated or not current_user.is_admin:
+            return jsonify({"message": "Unauthorized"}), 403
+
+        job = JobModel.query.get_or_404(job_id)
+        applications = ApplicationModel.query.filter_by(job_id=job.id).all()
+        applications_list = [
+            {
+                "id": application.id,
+                "applicant_id": application.applicant_id,
+                "job_id": application.job_id,
+                "resume_url": application.resume_url,
+                "cover_letter": application.cover_letter,
+                "applied_at": application.applied_at,
+                "status": application.status,
+            }
+            for application in applications
+        ]
+        # return jsonify(applications_list), 200
+        return applications_list, 200
+
+    except Exception as e:
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 
 # ---------------- 7. Querying Jobs (Search by Keyword)
-# @app.route("/jobs/search", methods=["GET"])
-# def search_jobs():
-#     keyword = request.args.get("keyword", "")
-#     jobs = Job.query.filter(
-#         Job.title.contains(keyword) | Job.description.contains(keyword)
-#     ).all()
-#     jobs_list = [
-#         {
-#             "id": job.id,
-#             "title": job.title,
-#             "description": job.description,
-#             "date_posted": job.date_posted,
-#         }
-#         for job in jobs
-#     ]
-#     return jsonify(jobs_list), 200
+
+
+@blp.route("/jobs/<string:keyword>", methods=["GET"])
+@blp.response(200, JobSearchSchema(many=True))
+def search_jobs(keyword):
+    try:
+        jobs = JobModel.query.filter(
+            JobModel.title.contains(keyword) | JobModel.description.contains(keyword)
+        ).all()
+        jobs_list = [
+            {
+                "id": job.id,
+                "title": job.title,
+                "company": job.company,
+                "description": job.description,
+                "posted_at": job.posted_at,
+            }
+            for job in jobs
+        ]
+        return jobs_list, 200
+
+    except Exception as e:
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
