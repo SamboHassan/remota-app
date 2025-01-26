@@ -2,12 +2,16 @@ from flask import Flask, jsonify
 from flask_smorest import Api
 from flask_jwt_extended import JWTManager
 from flask_login import LoginManager
+from datetime import timedelta
 
-from models import UserModel  # Import your UserModel
+from models import UserModel
 from db import db
+import os
 
 from resources.user import blp as UserBlueprint
 from resources.job import blp as JobBlueprint
+
+# from resources.application import blp as ApplicationBlueprint
 
 # from werkzeug.http import HTTP_STATUS_CODES
 from passlib.hash import pbkdf2_sha256
@@ -28,7 +32,10 @@ def create_app(db_url=None):
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["PROPAGATE_EXCEPTIONS"] = True
     app.config["JWT_ERROR_MESSAGE_KEY"] = "message"
-    app.config["JWT_SECRET_KEY"] = "jose"
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
+    app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
+    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=7)
 
     # Initialize extensions
     db.init_app(app)
