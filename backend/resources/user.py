@@ -30,7 +30,7 @@ blp = Blueprint("Users", "users", description="Operations on users")
 # -------- Endpoints ---------#
 
 
-@blp.route("/users", methods=["POST"])
+@blp.route("/api/users", methods=["POST"])
 @blp.arguments(UserSchema())  # Validate request payload with schema
 @blp.response(201, UserSchema())  # Validate response with schema
 def register(user_data):
@@ -62,35 +62,34 @@ def register(user_data):
         return {"message": "Username or email already exists."}, 400
 
 
-@blp.route("/login", methods=["POST"])
+@blp.route("/api/login", methods=["POST"])
 @blp.arguments(LoginSchema)  # Use LoginSchema for validation
 def login(user_data):
-    # Check if user is already authenticated
-    # if current_user.is_authenticated:
-    #     return jsonify({"message": "User already logged in."}), 200
+    try:
+        user = UserModel.query.filter(UserModel.email == user_data["email"]).first()
 
-    user = UserModel.query.filter(UserModel.email == user_data["email"]).first()
-    # if user and pbkdf2_sha256.verify(user_data["password"], user.password):
-    #     login_user(user)  # Log the user in
-    if user and user.check_password(user_data["password"]):
-        login_user(user)
-        access_token = create_access_token(identity=str(user.id), fresh=True)
-        refresh_token = create_refresh_token(str(user.id))
+        if user and user.check_password(user_data["password"]):
+            login_user(user)
+            access_token = create_access_token(identity=str(user.id), fresh=True)
+            refresh_token = create_refresh_token(str(user.id))
 
-        return (
-            jsonify(
-                {
-                    "access_token": access_token,
-                    "refresh_token": refresh_token,
-                    "message": "Login successful.",
-                }
-            ),
-            200,
-        )
-    abort(401, message="Invalid email or password.")
+            return (
+                jsonify(
+                    {
+                        "access_token": access_token,
+                        "refresh_token": refresh_token,
+                        "message": "Login successful.",
+                    }
+                ),
+                200,
+            )
+        abort(401, message="Invalid email or password.")
+
+    except ValidationError as e:
+        return {"message": e.messages}, 400
 
 
-@blp.route("/logout", methods=["POST"])
+@blp.route("/api/logout", methods=["POST"])
 @jwt_required()
 def logout():
     logout_user()
@@ -100,7 +99,7 @@ def logout():
     return {"message": "Successfully logged out"}, 200
 
 
-@blp.route("/refresh")
+@blp.route("/api/refresh")
 @jwt_required(refresh=True)
 def refresh():
     current_user = get_jwt_identity()

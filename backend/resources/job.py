@@ -20,6 +20,7 @@ from schemas import (
     ApplyJobSchema,
     ApplicationSchema,
     JobSearchSchema,
+    ApplicationStatusSchema,
 )
 
 blp = Blueprint("Jobs", "jobs", description="Operations on jobs")
@@ -27,7 +28,7 @@ blp = Blueprint("Jobs", "jobs", description="Operations on jobs")
 # --------------------- 1. Create or Post a Job
 
 
-@blp.route("/jobs", methods=["POST"])
+@blp.route("/api/jobs", methods=["POST"])
 @blp.arguments(JobSchema)  # Validate request payload with schema
 # @blp.response(201, JobSchema)  # Validate response with schema
 @login_required  # Ensures the user is logged in via Flask-Login
@@ -73,7 +74,7 @@ def create_job(job_data):
 # --------------------- 2. Get all Jobs
 
 
-@blp.route("/jobs", methods=["GET"])
+@blp.route("/api/jobs", methods=["GET"])
 @blp.response(201, JobSchema)  # Validate response with schema
 def get_jobs():
     try:
@@ -100,7 +101,7 @@ def get_jobs():
 # --------------------- 3. Apply for a Job
 
 
-@blp.route("/jobs/<int:job_id>/apply", methods=["POST"])
+@blp.route("/api/jobs/<int:job_id>/apply", methods=["POST"])
 @blp.arguments(ApplyJobSchema)  # Validates request body
 @login_required  # Ensures the user is logged in
 @jwt_required()  # Ensures a valid JWT token is provided
@@ -145,7 +146,7 @@ def apply_for_job(user_data, job_id):
 # ------- 6. Updating Job Details (Admin Only)
 
 
-@blp.route("/jobs/<int:job_id>", methods=["PUT"])
+@blp.route("/api/jobs/<int:job_id>", methods=["PATCH"])
 @blp.arguments(UpdateJobSchema)  # Validates request body
 @login_required  # Ensures the user is logged in
 @jwt_required()  # Ensures a valid JWT token is provided
@@ -155,6 +156,7 @@ def update_job(job_data, job_id):
             return jsonify({"message": "Unauthorized"}), 403
 
         job = JobModel.query.get_or_404(job_id)
+
         job.title = job_data["title"]
         job.description = job_data["description"]
         db.session.commit()
@@ -164,7 +166,7 @@ def update_job(job_data, job_id):
         return jsonify({"message": f"An error occurred: {str(e)}"}), 500
 
 
-@blp.route("/jobs/<int:job_id>", methods=["DELETE"])
+@blp.route("/api/jobs/<int:job_id>", methods=["DELETE"])
 @login_required  # Ensures the user is logged in
 @jwt_required()  # Ensures a valid JWT token is provide
 def delete_job(job_id):
@@ -184,8 +186,7 @@ def delete_job(job_id):
 # ------- 9. Querying Applications for a Specific Job (Admin Only)
 
 
-@blp.route("/jobs/<int:job_id>/applications", methods=["GET"])
-# @blp.arguments(ApplicationRequestSchema)  # No req body to Validates
+@blp.route("/api/jobs/<int:job_id>/applications", methods=["GET"])
 @blp.response(200, ApplicationSchema(many=True))  # Validate response with schema
 @login_required  # Ensures the user is logged in
 @jwt_required()  # Ensures a valid JWT token is provided
@@ -219,7 +220,7 @@ def get_job_applications(job_id):
 # ---------------- 7. Querying Jobs (Search by Keyword)
 
 
-@blp.route("/jobs/<string:keyword>", methods=["GET"])
+@blp.route("/api/jobs/<string:keyword>", methods=["GET"])
 @blp.response(200, JobSearchSchema(many=True))
 def search_jobs(keyword):
     try:
@@ -237,6 +238,31 @@ def search_jobs(keyword):
             for job in jobs
         ]
         return jobs_list, 200
+
+    except Exception as e:
+        return jsonify({"message": f"An error occurred: {str(e)}"}), 500
+
+
+@blp.route("/api/applications/<int:application_id>", methods=["PATCH"])
+@blp.arguments(ApplicationStatusSchema)
+@login_required  # Ensures the user is logged in
+@jwt_required()  # Ensures a valid JWT token is provided
+def update_application_status(status_data, application_id):
+    try:
+        if not current_user.is_authenticated or not current_user.is_admin:
+            return jsonify({"message": "Unauthorized"}), 403
+
+        application = ApplicationModel.query.get_or_404(application_id)
+
+        application.status = status_data["status"]
+        db.session.commit()
+
+        return (
+            jsonify(
+                {"message": f"Application status updated to '{application.status}'!"}
+            ),
+            200,
+        )
 
     except Exception as e:
         return jsonify({"message": f"An error occurred: {str(e)}"}), 500
