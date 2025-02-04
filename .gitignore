@@ -7,3 +7,4 @@ node_modules/
 remota/.env.local
 backend/.venv/
 backend/.venv/*
+remota/.next/
