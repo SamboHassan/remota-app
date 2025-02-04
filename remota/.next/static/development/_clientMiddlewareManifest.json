@@ -1,1 +1,10 @@
-[]
+[
+  {
+    "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/profile(\\\\.json)?[\\/#\\?]?$",
+    "originalSource": "/profile"
+  },
+  {
+    "regexp": "^(?:\\/(_next\\/data\\/[^/]{1,}))?\\/apply(\\\\.json)?[\\/#\\?]?$",
+    "originalSource": "/apply"
+  }
+]

@@ -3,6 +3,57 @@ npm install axios react-toastify
 axios: For making API requests to the Flask backend.
 react-toastify: For displaying notifications (e.g., success or error messages).
 
+
+app/
+│── api/                  # API Routes (if needed, but usually handled by Flask)
+│── dashboard/            # Admin Dashboard (Protected)
+│   ├── layout.tsx
+│   ├── page.tsx          # Admin dashboard homepage
+│   ├── jobs/             # Manage job postings
+│   │   ├── page.tsx      # View all jobs
+│   │   ├── new/          # Create a new job
+│   │   │   ├── page.tsx  
+│   │   ├── [id]/         # Job details
+│   │   │   ├── page.tsx
+│   │   │   ├── edit/     # Edit job posting
+│   │   │   │   ├── page.tsx  
+│   ├── users/            # Manage users (Admins only)
+│   │   ├── page.tsx      
+│   │   ├── [id]/         # User details
+│   │   │   ├── page.tsx
+│── jobs/                 # Public Job Listings
+│   ├── page.tsx          # Browse jobs
+│   ├── [id]/             # Job details
+│   │   ├── page.tsx
+│── auth/                 # Authentication
+│   ├── login/            # Login page
+│   │   ├── page.tsx
+│   ├── signup/           # Signup page
+│   │   ├── page.tsx
+│── profile/              # User Profile (Protected)
+│   ├── page.tsx
+│   ├── edit/             # Edit Profile
+│   │   ├── page.tsx
+│── applications/         # Job Applications (User's Applied Jobs)
+│   ├── page.tsx
+│   ├── [id]/             # Application details
+│   │   ├── page.tsx
+│── layout.tsx            # Global Layout
+│── page.tsx              # Home Page
+│── loading.tsx           # Loading State
+│── error.tsx             # Error Handling
+│── not-found.tsx         # Custom 404 Page
+
+
+
+
+
+
+
+
+
+
+
 flask-job-frontend/
 ├── components/
 │   ├── Navbar.js
@@ -529,3 +580,47 @@ export default function Login() {
     </>
   );
 }
+
+
+
+
+
+app/
+│── api/                  # API Routes (if needed, but usually handled by Flask)
+│── dashboard/            # Admin Dashboard (Protected)
+│   ├── layout.tsx
+│   ├── page.tsx          # Admin dashboard homepage
+│   ├── jobs/             # Manage job postings
+│   │   ├── page.tsx      # View all jobs
+│   │   ├── new/          # Create a new job
+│   │   │   ├── page.tsx  
+│   │   ├── [id]/         # Job details
+│   │   │   ├── page.tsx
+│   │   │   ├── edit/     # Edit job posting
+│   │   │   │   ├── page.tsx  
+│   ├── users/            # Manage users (Admins only)
+│   │   ├── page.tsx      
+│   │   ├── [id]/         # User details
+│   │   │   ├── page.tsx
+│── jobs/                 # Public Job Listings
+│   ├── page.tsx          # Browse jobs
+│   ├── [id]/             # Job details
+│   │   ├── page.tsx
+│── auth/                 # Authentication
+│   ├── login/            # Login page
+│   │   ├── page.tsx
+│   ├── signup/           # Signup page
+│   │   ├── page.tsx
+│── profile/              # User Profile (Protected)
+│   ├── page.tsx
+│   ├── edit/             # Edit Profile
+│   │   ├── page.tsx
+│── applications/         # Job Applications (User's Applied Jobs)
+│   ├── page.tsx
+│   ├── [id]/             # Application details
+│   │   ├── page.tsx
+│── layout.tsx            # Global Layout
+│── page.tsx              # Home Page
+│── loading.tsx           # Loading State
+│── error.tsx             # Error Handling
+│── not-found.tsx         # Custom 404 Page
