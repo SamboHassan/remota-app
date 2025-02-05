@@ -1,8 +1,10 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_smorest import Api
 from flask_jwt_extended import JWTManager
 from flask_login import LoginManager
 from datetime import timedelta
+from flask_cors import CORS
+from werkzeug.utils import secure_filename
 
 from models import UserModel
 from db import db
@@ -36,6 +38,13 @@ def create_app(db_url=None):
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
     app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=7)
+    # Enable CORS for all routes and origins
+    # CORS(app)
+    # CORS(app, resources={r"/api/*": {"origins": "http://localhost:3000"}})
+    CORS(app, supports_credentials=True)
+    UPLOAD_FOLDER = "uploads"
+    app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
     # Initialize extensions
     db.init_app(app)
@@ -45,7 +54,7 @@ def create_app(db_url=None):
     # Configure Flask-Login
     login_manager = LoginManager()
     login_manager.init_app(app)
-    login_manager.login_view = "UserBlueprint.login"  # Route name for login
+    login_manager.login_view = "Users.login"  # Route name for login
     # login_manager.login_view = (
     #     "UserBlueprint.login"  # Redirect to login if not authenticated
     # )
@@ -54,6 +63,15 @@ def create_app(db_url=None):
     @login_manager.user_loader
     def load_user(user_id):
         return UserModel.query.get(int(user_id))  # Load user by ID
+
+    # Authentication Middleware - 01/02/2025
+    # @app.before_request
+    # def require_login():
+    #     if request.endpoint and request.endpoint.startswith("public_"):
+    #         return  # Skip authentication for public routes
+
+    #     if not request.headers.get("Authorization"):
+    #         return jsonify({"code": 401, "status": "Unauthorized"}), 401
 
     # JWT token blocklist loader
     @jwt.token_in_blocklist_loader

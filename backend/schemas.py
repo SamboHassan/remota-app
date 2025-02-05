@@ -71,3 +71,7 @@ class JobSearchSchema(Schema):
     company = fields.Str()
     description = fields.Str()
     posted_at = fields.DateTime(dump_only=True)
+
+
+class ApplicationStatusSchema(Schema):
+    status = fields.Str(required=True)

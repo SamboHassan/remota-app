@@ -14,6 +14,8 @@ class ApplicationModel(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     applicant_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     job_id = db.Column(db.Integer, db.ForeignKey("jobs.id"), nullable=False)
+    resume_url = db.Column(db.String(120), nullable=True)
+    cover_letter = db.Column(db.String(120), nullable=True)
     applied_at = db.Column(db.DateTime, server_default=db.func.now())
     status = db.Column(
         db.String(50), default="Pending"
