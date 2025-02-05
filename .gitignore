@@ -1,10 +1,11 @@
 .venv
 .venv/
-backend/.venv
+backend/.venv/
 remota/node_modules/
 node_modules/
 .env
 remota/.env.local
 backend/.venv/
+backend/venv/
 backend/.venv/*
 remota/.next/
